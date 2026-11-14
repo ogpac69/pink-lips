@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Lip Gloss Studio</title>
+<style>
+*{box-sizing:border-box;}
+html,body{height:100%;margin:0;overscroll-behavior:none;}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  background:linear-gradient(160deg,#ffe3f1 0%,#f3e6ff 55%,#dcebff 100%);
+  height:100dvh;overflow:hidden;color:#5a3d50;
+}
+#app{max-width:560px;margin:0 auto;height:100dvh;display:flex;flex-direction:column;}
+
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 6px;gap:8px;}
+.logo{
+  font-weight:800;font-size:17px;letter-spacing:.2px;
+  background:linear-gradient(90deg,#ff8fc0,#c6b2ff,#9ad7ff,#ff8fc0);
+  background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:holo 7s linear infinite;
+}
+@keyframes holo{to{background-position:300% 0;}}
+.actions{display:flex;gap:6px;flex-wrap:nowrap;}
+.iconBtn{
+  border:none;cursor:pointer;width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(145deg,#ffffff,#ffd6ea);
+  box-shadow:0 2px 4px rgba(170,70,120,.25),inset 0 1px 1px rgba(255,255,255,.9);
+  font-size:15px;display:flex;align-items:center;justify-content:center;
+  transition:transform .12s;
+}
+.iconBtn:active{transform:scale(.9);}
+.pillBtn{
+  border:none;cursor:pointer;border-radius:18px;padding:0 12px;height:34px;
+  background:linear-gradient(145deg,#ffffff,#e4d6ff);
+  box-shadow:0 2px 4px rgba(120,80,170,.25),inset 0 1px 1px rgba(255,255,255,.9);
+  font-size:11px;font-weight:600;color:#6b4a8a;white-space:nowrap;
+}
+
+#stage{
+  position:relative;flex:1;margin:4px 14px 10px;border-radius:30px;overflow:hidden;
+  background:rgba(255,255,255,.35);backdrop-filter:blur(6px);
+  box-shadow:0 12px 32px rgba(190,80,140,.28),inset 0 0 0 1px rgba(255,255,255,.65);
+  touch-action:none;min-height:230px;
+}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%;}
+#hint{
+  position:absolute;bottom:10px;left:0;right:0;text-align:center;font-size:12px;
+  color:#8a5570;opacity:.85;transition:opacity .35s;pointer-events:none;
+}
+#hint.hidden{opacity:0;}
+#stage.compare #productCanvas,#stage.compare #sparkleCanvas{opacity:0;transition:opacity .25s;}
+
+#tray{padding:8px 14px 14px;background:rgba(255,255,255,.4);}
+.category-tabs{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto;touch-action:pan-x;}
+.tabBtn{
+  border:none;cursor:pointer;flex:0 0 auto;padding:7px 15px;border-radius:999px;
+  background:rgba(255,255,255,.55);color:#7a4360;font-weight:600;font-size:12.5px;
+}
+.tabBtn.active{background:linear-gradient(135deg,#ff8fc0,#ff4fa3);color:#fff;box-shadow:0 2px 6px rgba(255,79,163,.4);}
+
+#productList{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;touch-action:pan-x;}
+.swatch{width:62px;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;cursor:pointer;}
+.swatch .dot{
+  width:42px;height:42px;border-radius:50%;
+  background:radial-gradient(circle at 30% 28%,rgba(255,255,255,.85),var(--sw-color) 60%);
+  box-shadow:0 2px 6px rgba(0,0,0,.15),inset 0 0 0 2px rgba(255,255,255,.6);
+  transition:transform .15s;
+}
+.swatch.active .dot{box-shadow:0 0 0 3px #ff4fa3,0 2px 8px rgba(255,79,163,.5);transform:scale(1.08);}
+.swatch.texture-glitter .dot,.swatch.texture-holo .dot{
+  background-image:radial-gradient(circle at 30% 28%,rgba(255,255,255,.9),var(--sw-color) 55%),
+    repeating-conic-gradient(from 0deg,rgba(255,255,255,.3) 0deg 8deg,transparent 8deg 18deg);
+}
+.swatch.texture-shimmer .dot{box-shadow:0 2px 6px rgba(0,0,0,.15),inset -5px -5px 9px rgba(255,255,255,.75);}
+.swatch .label{font-size:9.5px;color:#6b3f57;text-align:center;line-height:1.15;}
+
+.applicator-row{display:flex;align-items:center;gap:7px;margin-top:9px;font-size:11.5px;color:#7a4360;touch-action:pan-x;}
+.appBtn{border:none;cursor:pointer;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.6);color:#7a4360;font-size:11.5px;}
+.appBtn.active{background:linear-gradient(135deg,#c6b2ff,#9a7bff);color:#fff;}
+.saveBtn{margin-left:auto;border:none;cursor:pointer;padding:6px 12px;border-radius:999px;background:linear-gradient(135deg,#ffd6ea,#ffffff);font-size:11px;color:#a8507a;font-weight:700;white-space:nowrap;}
+
+#savedRow{display:flex;gap:7px;margin-top:9px;overflow-x:auto;touch-action:pan-x;}
+#savedRow:empty{margin-top:0;}
+.savedThumb{width:46px;height:30px;border-radius:8px;background-size:cover;background-position:center;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);flex:0 0 auto;cursor:pointer;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="logo">Lip Gloss Studio</div>
+    <div class="actions">
+      <button class="iconBtn" id="randomizeBtn" title="Randomize">🎲</button>
+      <button class="iconBtn" id="undoBtn" title="Undo">↺</button>
+      <button class="iconBtn" id="clearBtn" title="Clear">✕</button>
+      <button class="pillBtn" id="compareBtn">Before / after</button>
+      <button class="iconBtn" id="resetBtn" title="Reset">⟲</button>
+    </div>
+  </header>
+
+  <main id="stage">
+    <canvas id="baseCanvas"></canvas>
+    <canvas id="productCanvas"></canvas>
+    <canvas id="overlayCanvas"></canvas>
+    <canvas id="sparkleCanvas"></canvas>
+    <div id="hint">Drag across the lips to apply product</div>
+  </main>
+
+  <footer id="tray">
+    <div class="category-tabs">
+      <button class="tabBtn" data-cat="balm">Balms</button>
+      <button class="tabBtn" data-cat="lipstick">Lipstick</button>
+      <button class="tabBtn" data-cat="gloss">Gloss</button>
+    </div>
+    <div id="productList"></div>
+    <div class="applicator-row">
+      <span>Applicator</span>
+      <button class="appBtn" data-app="stick">Stick</button>
+      <button class="appBtn" data-app="finger">Finger</button>
+      <button class="appBtn" data-app="wand">Wand</button>
+      <button class="saveBtn" id="saveLookBtn">+ Save look</button>
+    </div>
+    <div id="savedRow"></div>
+  </footer>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- PRODUCT DATA ---------- */
+const PRODUCTS = {
+  balm: [
+    {id:'classic',    name:'Classic balm',      color:[255,255,255], dabAlpha:0.045, gloss:0.55, texture:'clear'},
+    {id:'petroleum',  name:'Petroleum jelly',   color:[255,250,245], dabAlpha:0.05,  gloss:0.9,  texture:'clear'},
+    {id:'cherry',     name:'Cherry balm',       color:[200,40,55],   dabAlpha:0.05,  gloss:0.5,  texture:'sheer'},
+    {id:'strawberry', name:'Strawberry balm',   color:[235,90,120],  dabAlpha:0.05,  gloss:0.5,  texture:'sheer'},
+    {id:'rosetint',   name:'Rose tinted balm',  color:[205,110,120], dabAlpha:0.06,  gloss:0.45, texture:'sheer'},
+    {id:'shimmer',    name:'Shimmer balm',      color:[240,205,215], dabAlpha:0.05,  gloss:0.6,  texture:'shimmer'},
+    {id:'glitterbalm',name:'Glitter balm',      color:[255,255,255], dabAlpha:0.03,  gloss:0.7,  texture:'glitter'}
+  ],
+  lipstick: [
+    {id:'nude',  name:'Nude',   color:[185,130,110], dabAlpha:0.18, gloss:0.25, texture:'matte'},
+    {id:'pink',  name:'Pink',   color:[230,110,150], dabAlpha:0.18, gloss:0.3,  texture:'matte'},
+    {id:'rose',  name:'Rose',   color:[195,80,100],  dabAlpha:0.18, gloss:0.3,  texture:'matte'},
+    {id:'red',   name:'Red',    color:[190,30,40],   dabAlpha:0.2,  gloss:0.3,  texture:'matte'},
+    {id:'berry', name:'Berry',  color:[120,30,55],   dabAlpha:0.2,  gloss:0.3,  texture:'matte'},
+    {id:'coral', name:'Coral',  color:[235,100,75],  dabAlpha:0.18, gloss:0.3,  texture:'matte'}
+  ],
+  gloss: [
+    {id:'clear',       name:'Clear gloss',    color:[255,255,255], dabAlpha:0.035, gloss:0.95, texture:'clear'},
+    {id:'pinkgloss',   name:'Pink gloss',     color:[240,130,170], dabAlpha:0.05,  gloss:0.9,  texture:'sheer'},
+    {id:'glittergloss',name:'Glitter gloss',  color:[255,220,235], dabAlpha:0.04,  gloss:0.9,  texture:'glitter'},
+    {id:'holo',        name:'Holographic',    color:[220,230,255], dabAlpha:0.04,  gloss:0.95, texture:'holo'},
+    {id:'highshine',   name:'High shine',     color:[255,245,245], dabAlpha:0.035, gloss:1.0,  texture:'clear'}
+  ]
+};
+const APPLICATORS = {
+  stick:  {radius:15, feather:0.6,  alphaMul:1,   glossMul:1,   stretch:1},
+  finger: {radius:24, feather:0.35, alphaMul:0.8, glossMul:0.8, stretch:1},
+  wand:   {radius:11, feather:0.7,  alphaMul:0.9, glossMul:1.7, stretch:1.7}
+};
+
+/* ---------- STATE ---------- */
+const state = {category:'balm', productId:null, applicator:'stick', drawing:false, lastPt:null, undoStack:[], compare:false};
+let sparkles = [];
+let stageW=0, stageH=0, dpr=1, geo=null;
+
+/* ---------- DOM ---------- */
+const stageEl=document.getElementById('stage');
+const baseCanvas=document.getElementById('baseCanvas'), baseCtx=baseCanvas.getContext('2d');
+const productCanvas=document.getElementById('productCanvas'), productCtx=productCanvas.getContext('2d');
+const overlayCanvas=document.getElementById('overlayCanvas'), overlayCtx=overlayCanvas.getContext('2d');
+const sparkleCanvas=document.getElementById('sparkleCanvas'), sparkleCtx=sparkleCanvas.getContext('2d');
+const hint=document.getElementById('hint');
+const productList=document.getElementById('productList');
+const savedRow=document.getElementById('savedRow');
+const compareBtn=document.getElementById('compareBtn');
+
+/* ---------- LIP GEOMETRY ---------- */
+function buildLipGeometry(w,h){
+  const cx=w/2, cy=h*0.52;
+  const lipW=Math.min(w*0.82, h*1.7);
+  const lipH=lipW*0.46;
+  const leftC={x:cx-lipW/2,y:cy}, rightC={x:cx+lipW/2,y:cy};
+  const peakL={x:cx-lipW*0.11,y:cy-lipH*0.58}, peakR={x:cx+lipW*0.11,y:cy-lipH*0.58};
+  const dip={x:cx,y:cy-lipH*0.40};
+  const topOuterL={x:cx-lipW*0.34,y:cy-lipH*0.30}, topOuterR={x:cx+lipW*0.34,y:cy-lipH*0.30};
+  const bottomMid={x:cx,y:cy+lipH*1.0};
+  const bottomCtlL={x:cx-lipW*0.28,y:cy+lipH*0.95}, bottomCtlR={x:cx+lipW*0.28,y:cy+lipH*0.95};
+
+  const path=new Path2D();
+  path.moveTo(leftC.x,leftC.y);
+  path.quadraticCurveTo(topOuterL.x,topOuterL.y,peakL.x,peakL.y);
+  path.quadraticCurveTo((peakL.x+dip.x)/2,peakL.y,dip.x,dip.y);
+  path.quadraticCurveTo((dip.x+peakR.x)/2,peakR.y,peakR.x,peakR.y);
+  path.quadraticCurveTo(topOuterR.x,topOuterR.y,rightC.x,rightC.y);
+  path.bezierCurveTo(bottomCtlR.x,bottomCtlR.y,bottomMid.x+lipW*0.2,bottomMid.y,bottomMid.x,bottomMid.y);
+  path.bezierCurveTo(bottomMid.x-lipW*0.2,bottomMid.y,bottomCtlL.x,bottomCtlL.y,leftC.x,leftC.y);
+  path.closePath();
+
+  const seam=new Path2D();
+  seam.moveTo(leftC.x+lipW*0.04,leftC.y+lipH*0.02);
+  seam.quadraticCurveTo(cx-lipW*0.15,cy+lipH*0.12,cx,cy+lipH*0.08);
+  seam.quadraticCurveTo(cx+lipW*0.15,cy+lipH*0.12,rightC.x-lipW*0.04,rightC.y+lipH*0.02);
+
+  return {path,seam,cx,cy,lipW,lipH};
+}
+
+/* ---------- BASE / OVERLAY RENDERING ---------- */
+function drawBase(){
+  baseCtx.clearRect(0,0,stageW,stageH);
+  const skinGrad=baseCtx.createLinearGradient(0,0,0,stageH);
+  skinGrad.addColorStop(0,'#ffe3ec'); skinGrad.addColorStop(1,'#ffd0e0');
+  baseCtx.fillStyle=skinGrad; baseCtx.fillRect(0,0,stageW,stageH);
+
+  const g=geo;
+  baseCtx.save(); baseCtx.filter='blur(10px)';
+  baseCtx.fillStyle='rgba(120,40,70,.18)';
+  baseCtx.beginPath(); baseCtx.ellipse(g.cx,g.cy+g.lipH*1.15,g.lipW*0.42,g.lipH*0.35,0,0,Math.PI*2); baseCtx.fill();
+  baseCtx.restore();
+
+  const lipGrad=baseCtx.createLinearGradient(g.cx,g.cy-g.lipH*0.6,g.cx,g.cy+g.lipH*1.0);
+  lipGrad.addColorStop(0,'#e8899f'); lipGrad.addColorStop(0.5,'#d9697f'); lipGrad.addColorStop(1,'#c85a73');
+  baseCtx.fillStyle=lipGrad; baseCtx.fill(g.path);
+
+  baseCtx.save(); baseCtx.clip(g.path);
+  const hl=baseCtx.createRadialGradient(g.cx-g.lipW*0.05,g.cy+g.lipH*0.35,2,g.cx-g.lipW*0.05,g.cy+g.lipH*0.35,g.lipW*0.3);
+  hl.addColorStop(0,'rgba(255,255,255,.35)'); hl.addColorStop(1,'rgba(255,255,255,0)');
+  baseCtx.fillStyle=hl; baseCtx.fillRect(0,0,stageW,stageH);
+  baseCtx.restore();
+}
+function drawOverlay(){
+  overlayCtx.clearRect(0,0,stageW,stageH);
+  const g=geo;
+  overlayCtx.save(); overlayCtx.clip(g.path);
+  overlayCtx.strokeStyle='rgba(110,40,55,.5)'; overlayCtx.lineWidth=Math.max(1.5,g.lipW*0.008); overlayCtx.lineCap='round';
+  overlayCtx.stroke(g.seam);
+  overlayCtx.strokeStyle='rgba(90,30,45,.25)'; overlayCtx.lineWidth=Math.max(2,g.lipW*0.01);
+  overlayCtx.stroke(g.path);
+  overlayCtx.restore();
+}
+
+/* ---------- SPARKLES ---------- */
+function addSparkle(x,y,kind){
+  if(sparkles.length>140) sparkles.shift();
+  const palette = kind==='holo' ? ['#ffd6f2','#d6e3ff','#e2ffe8','#fff2c2'] : ['#ffffff','#f4e9ff'];
+  sparkles.push({x,y,phase:Math.random()*Math.PI*2,speed:1.5+Math.random()*1.5,size:1.4+Math.random()*2,color:palette[Math.floor(Math.random()*palette.length)]});
+}
+function tickSparkles(t){
+  sparkleCtx.clearRect(0,0,stageW,stageH);
+  if(sparkles.length && geo){
+    sparkleCtx.save(); sparkleCtx.clip(geo.path);
+    sparkles.forEach(s=>{
+      const a=0.35+0.65*Math.abs(Math.sin(t*0.001*s.speed+s.phase));
+      sparkleCtx.globalAlpha=a; sparkleCtx.fillStyle=s.color;
+      sparkleCtx.beginPath(); sparkleCtx.arc(s.x,s.y,s.size,0,Math.PI*2); sparkleCtx.fill();
+    });
+    sparkleCtx.restore(); sparkleCtx.globalAlpha=1;
+  }
+  requestAnimationFrame(tickSparkles);
+}
+
+/* ---------- PAINTING ---------- */
+function currentProduct(){ return PRODUCTS[state.category].find(p=>p.id===state.productId); }
+function ctxPointInLip(x,y){ return geo && productCtx.isPointInPath(geo.path,x,y); }
+
+function paintDab(x,y,prevX,prevY){
+  const p=currentProduct(); if(!p) return;
+  const app=APPLICATORS[state.applicator];
+  const radius=app.radius, alpha=p.dabAlpha*app.alphaMul, [r,g,b]=p.color;
+  let angle=0; if(prevX!==undefined) angle=Math.atan2(y-prevY,x-prevX);
+
+  productCtx.save(); productCtx.clip(geo.path);
+  productCtx.translate(x,y); productCtx.rotate(angle); productCtx.scale(app.stretch,1);
+  const grad=productCtx.createRadialGradient(0,0,0,0,0,radius);
+  grad.addColorStop(0,`rgba(${r},${g},${b},${alpha})`);
+  grad.addColorStop(app.feather,`rgba(${r},${g},${b},${alpha*0.5})`);
+  grad.addColorStop(1,`rgba(${r},${g},${b},0)`);
+  productCtx.fillStyle=grad;
+  productCtx.beginPath(); productCtx.arc(0,0,radius,0,Math.PI*2); productCtx.fill();
+  productCtx.restore();
+
+  productCtx.save(); productCtx.clip(geo.path);
+  productCtx.globalCompositeOperation='lighter';
+  const hlA=0.06*p.gloss*app.glossMul;
+  const hlGrad=productCtx.createRadialGradient(x-radius*0.2,y-radius*0.3,0,x,y,radius*0.8);
+  hlGrad.addColorStop(0,`rgba(255,255,255,${hlA})`); hlGrad.addColorStop(1,'rgba(255,255,255,0)');
+  productCtx.fillStyle=hlGrad;
+  productCtx.beginPath(); productCtx.arc(x,y,radius*0.8,0,Math.PI*2); productCtx.fill();
+  productCtx.restore();
+
+  if((p.texture==='glitter'||p.texture==='holo'||p.texture==='shimmer') && Math.random()<0.35){
+    addSparkle(x+(Math.random()-0.5)*radius, y+(Math.random()-0.5)*radius, p.texture);
+  }
+}
+
+/* ---------- POINTER EVENTS ---------- */
+function getPos(e){ const rect=stageEl.getBoundingClientRect(); return {x:e.clientX-rect.left,y:e.clientY-rect.top}; }
+stageEl.addEventListener('pointerdown', e=>{
+  const pos=getPos(e); if(!ctxPointInLip(pos.x,pos.y)) return;
+  pushUndo(); state.drawing=true; state.lastPt=pos;
+  try{ stageEl.setPointerCapture(e.pointerId); }catch(err){}
+  paintDab(pos.x,pos.y); hint.classList.add('hidden');
+});
+stageEl.addEventListener('pointermove', e=>{
+  const pos=getPos(e);
+  if(!state.drawing) return;
+  const last=state.lastPt||pos;
+  const dist=Math.hypot(pos.x-last.x,pos.y-last.y);
+  const steps=Math.max(1,Math.floor(dist/3));
+  for(let i=1;i<=steps;i++){
+    const ix=last.x+(pos.x-last.x)*(i/steps), iy=last.y+(pos.y-last.y)*(i/steps);
+    paintDab(ix,iy,last.x,last.y);
+  }
+  state.lastPt=pos;
+});
+function endStroke(){ state.drawing=false; state.lastPt=null; }
+stageEl.addEventListener('pointerup', endStroke);
+stageEl.addEventListener('pointercancel', endStroke);
+stageEl.addEventListener('pointerleave', endStroke);
+
+/* ---------- UNDO / CLEAR / RESET ---------- */
+function pushUndo(){
+  try{
+    state.undoStack.push(productCtx.getImageData(0,0,productCanvas.width,productCanvas.height));
+    if(state.undoStack.length>20) state.undoStack.shift();
+  }catch(err){}
+}
+function undo(){ const last=state.undoStack.pop(); if(last) productCtx.putImageData(last,0,0); }
+function clearProduct(){ pushUndo(); productCtx.clearRect(0,0,stageW,stageH); sparkles=[]; }
+function resetAll(){
+  productCtx.clearRect(0,0,stageW,stageH); sparkles=[]; state.undoStack=[];
+  state.compare=false; stageEl.classList.remove('compare'); compareBtn.textContent='Before / after';
+  selectCategory('balm'); state.applicator='stick'; updateApplicatorUI();
+  hint.classList.remove('hidden');
+}
+
+/* ---------- UI: categories / products / applicators ---------- */
+function selectCategory(cat){
+  state.category=cat;
+  state.applicator = cat==='gloss' ? 'wand' : 'stick';
+  document.querySelectorAll('.tabBtn').forEach(b=>b.classList.toggle('active', b.dataset.cat===cat));
+  state.productId = PRODUCTS[cat][0].id;
+  renderProductList(); updateApplicatorUI();
+}
+function renderProductList(){
+  productList.innerHTML='';
+  PRODUCTS[state.category].forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='swatch texture-'+p.texture+(p.id===state.productId?' active':'');
+    btn.style.setProperty('--sw-color',`rgb(${p.color[0]},${p.color[1]},${p.color[2]})`);
+    btn.innerHTML=`<span class="dot"></span><span class="label">${p.name}</span>`;
+    btn.addEventListener('click', ()=>{ state.productId=p.id; renderProductList(); });
+    productList.appendChild(btn);
+  });
+}
+function updateApplicatorUI(){ document.querySelectorAll('.appBtn').forEach(b=>b.classList.toggle('active', b.dataset.app===state.applicator)); }
+document.querySelectorAll('.tabBtn').forEach(b=>b.addEventListener('click', ()=>selectCategory(b.dataset.cat)));
+document.querySelectorAll('.appBtn').forEach(b=>b.addEventListener('click', ()=>{ state.applicator=b.dataset.app; updateApplicatorUI(); }));
+
+/* ---------- Randomize / Compare ---------- */
+function randomize(){
+  const cats=Object.keys(PRODUCTS);
+  const cat=cats[Math.floor(Math.random()*cats.length)];
+  state.category=cat;
+  const list=PRODUCTS[cat];
+  state.productId=list[Math.floor(Math.random()*list.length)].id;
+  const apps=Object.keys(APPLICATORS);
+  state.applicator=apps[Math.floor(Math.random()*apps.length)];
+  document.querySelectorAll('.tabBtn').forEach(b=>b.classList.toggle('active', b.dataset.cat===cat));
+  renderProductList(); updateApplicatorUI();
+}
+function toggleCompare(){
+  state.compare=!state.compare;
+  stageEl.classList.toggle('compare', state.compare);
+  compareBtn.textContent = state.compare ? 'Show result' : 'Before / after';
+}
+
+/* ---------- Save looks (localStorage) ---------- */
+function saveLook(){
+  let dataURL; try{ dataURL=productCanvas.toDataURL('image/png'); }catch(err){ return; }
+  let saved; try{ saved=JSON.parse(localStorage.getItem('lgs_looks')||'[]'); }catch(err){ saved=[]; }
+  saved.unshift({id:Date.now(), img:dataURL}); saved=saved.slice(0,8);
+  try{ localStorage.setItem('lgs_looks', JSON.stringify(saved)); }catch(err){}
+  renderSavedLooks();
+}
+function renderSavedLooks(){
+  let saved; try{ saved=JSON.parse(localStorage.getItem('lgs_looks')||'[]'); }catch(err){ saved=[]; }
+  savedRow.innerHTML='';
+  saved.forEach(item=>{
+    const el=document.createElement('div');
+    el.className='savedThumb'; el.style.backgroundImage=`url(${item.img})`;
+    el.title='Tap to load, double-tap to delete';
+    el.addEventListener('click', ()=>loadLook(item.img));
+    el.addEventListener('dblclick', ()=>deleteLook(item.id));
+    savedRow.appendChild(el);
+  });
+}
+function loadLook(dataURL){
+  const img=new Image();
+  img.onload=()=>{ pushUndo(); productCtx.clearRect(0,0,stageW,stageH); productCtx.drawImage(img,0,0,stageW,stageH); };
+  img.src=dataURL;
+}
+function deleteLook(id){
+  let saved; try{ saved=JSON.parse(localStorage.getItem('lgs_looks')||'[]'); }catch(err){ saved=[]; }
+  saved=saved.filter(s=>s.id!==id);
+  try{ localStorage.setItem('lgs_looks', JSON.stringify(saved)); }catch(err){}
+  renderSavedLooks();
+}
+
+/* ---------- LAYOUT ---------- */
+function setupCanvas(cv,ctx){
+  cv.width=stageW*dpr; cv.height=stageH*dpr;
+  cv.style.width=stageW+'px'; cv.style.height=stageH+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function layout(){
+  const rect=stageEl.getBoundingClientRect();
+  stageW=rect.width; stageH=rect.height;
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  [[baseCanvas,baseCtx],[productCanvas,productCtx],[overlayCanvas,overlayCtx],[sparkleCanvas,sparkleCtx]].forEach(([cv,ctx])=>setupCanvas(cv,ctx));
+  geo=buildLipGeometry(stageW,stageH);
+  drawBase(); drawOverlay();
+}
+function handleResize(){
+  let prevURL=null; try{ prevURL=productCanvas.toDataURL(); }catch(err){}
+  layout();
+  if(prevURL){
+    const img=new Image();
+    img.onload=()=>productCtx.drawImage(img,0,0,stageW,stageH);
+    img.src=prevURL;
+  }
+  state.undoStack=[];
+}
+window.addEventListener('resize', handleResize);
+
+/* ---------- WIRE BUTTONS & INIT ---------- */
+document.getElementById('undoBtn').addEventListener('click', undo);
+document.getElementById('clearBtn').addEventListener('click', clearProduct);
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+document.getElementById('randomizeBtn').addEventListener('click', randomize);
+document.getElementById('saveLookBtn').addEventListener('click', saveLook);
+compareBtn.addEventListener('click', toggleCompare);
+
+function init(){
+  layout();
+  selectCategory('balm');
+  updateApplicatorUI();
+  renderSavedLooks();
+  requestAnimationFrame(tickSparkles);
+}
+init();
+})();
+</script>
+</body>
+</html>
